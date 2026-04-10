@@ -1,0 +1,13 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-service
+  data:
+    mongodb:
+      uri: mongodb+srv://products:admin@mini-food-system.hbvvgpd.mongodb.net/minifood_user?retryWrites=true&w=majority&appName=mini-food-system
+
+jwt:
+  secret: ZjQ3MTRkMjgtYjk1MS00ZGE3LTk2MzAtNWU3MjY0MTcyZDBlMTIzNDU2Nzg5MGFiY2RlZg==
+  expiration: 86400000

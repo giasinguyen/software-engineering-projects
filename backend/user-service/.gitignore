@@ -1,0 +1,6 @@
+# Bỏ qua các file .class
+*.class
+# Bỏ qua thư mục build/bin nếu có
+bin/
+build/
+target/

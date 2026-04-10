@@ -105,3 +105,4 @@ Giai đoạn 3: (Optional)
 •  Dockerize
 ▪  Chạy hệ thống trên 1 server thật (VPS hoặc máy lab)
 Bài tập thực hành Kiến trúc và thiết kế phần mềm
+mongodb+srv://products:<db_password>@mini-food-system.hbvvgpd.mongodb.net/?appName=mini-food-system
