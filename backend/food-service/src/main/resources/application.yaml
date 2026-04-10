@@ -1,3 +1,6 @@
 spring:
   application:
     name: food-service
+  mongodb:
+    uri: ${DB_MONGODB_URL}
+  port: 8082
