@@ -21,9 +21,9 @@ export const paymentApi = withAuth(axios.create({ baseURL: PAYMENT_SERVICE }));
 
 // User Service
 export const authService = {
-  register: (data) => userApi.post("/register", data),
-  login: (data) => userApi.post("/login", data),
-  getUsers: () => userApi.get("/users"),
+  register: (data) => userApi.post("/api/auth/register", data),
+  login: (data) => userApi.post("/api/auth/login", data),
+  getUsers: () => userApi.get("/api/users"),
 };
 
 // Food Service
