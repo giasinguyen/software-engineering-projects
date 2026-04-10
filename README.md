@@ -1,0 +1,1 @@
+mongodb+srv://products:<db_password>@mini-food-system.hbvvgpd.mongodb.net/?appName=mini-food-system
