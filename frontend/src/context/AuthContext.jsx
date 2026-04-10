@@ -15,16 +15,16 @@ export function AuthProvider({ children }) {
 
   const login = async (username, password) => {
     const res = await authService.login({ username, password });
-    const { token, user: userData } = res.data;
+    const { token, user: userData } = res.data.data;
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
     return userData;
   };
 
-  const register = async (username, password, role = "USER") => {
-    const res = await authService.register({ username, password, role });
-    return res.data;
+  const register = async (username, email, fullName, password) => {
+    const res = await authService.register({ username, email, fullName, password });
+    return res.data.data;
   };
 
   const logout = () => {
