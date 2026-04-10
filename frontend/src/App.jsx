@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import FoodsPage from "./pages/FoodsPage";
@@ -11,10 +12,15 @@ import AdminPage from "./pages/AdminPage";
 
 function PrivateRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Đang tải...</div>;
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-10 h-10 border-4 border-orange-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && user.role !== "ADMIN") return <Navigate to="/foods" replace />;
-  return children;
+  return <Layout>{children}</Layout>;
 }
 
 export default function App() {

@@ -1,4 +1,4 @@
-import axios from "axios";
+﻿import axios from "axios";
 
 const USER_SERVICE = import.meta.env.VITE_USER_SERVICE || "http://localhost:8081";
 const FOOD_SERVICE = import.meta.env.VITE_FOOD_SERVICE || "http://localhost:8082";
@@ -19,14 +19,12 @@ export const foodApi = withAuth(axios.create({ baseURL: FOOD_SERVICE }));
 export const orderApi = withAuth(axios.create({ baseURL: ORDER_SERVICE }));
 export const paymentApi = withAuth(axios.create({ baseURL: PAYMENT_SERVICE }));
 
-// User Service
 export const authService = {
   register: (data) => userApi.post("/api/auth/register", data),
   login: (data) => userApi.post("/api/auth/login", data),
   getUsers: () => userApi.get("/api/users"),
 };
 
-// Food Service
 export const foodService = {
   getAll: () => foodApi.get("/api/foods"),
   create: (data) => foodApi.post("/api/foods", data),
@@ -34,13 +32,13 @@ export const foodService = {
   delete: (id) => foodApi.delete(`/api/foods/${id}`),
 };
 
-// Order Service
 export const orderService = {
-  create: (data) => orderApi.post("/api/orders", data),
-  getAll: () => orderApi.get("/api/orders"),
+  create: (data) => orderApi.post("/orders", data),
+  getAll: () => orderApi.get("/orders"),
+  getById: (id) => orderApi.get(`/orders/${id}`),
 };
 
-// Payment Service
 export const paymentService = {
-  pay: (data) => paymentApi.post("/api/payments", data),
+  pay: (data) => paymentApi.post("/payments", data),
+  getAll: () => paymentApi.get("/payments"),
 };

@@ -2,9 +2,12 @@ import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { paymentService } from "../services/api";
 
+const FOOD_EMOJIS = ["🍜","🍛","🍱","🍗","🥗","🍔","🥩","🍝","🍲","🥘","🍚","🍣","🥟","🍕","🌮","🥡"];
+const getFoodEmoji = (name = "") => FOOD_EMOJIS[name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % FOOD_EMOJIS.length];
+
 const METHODS = [
-  { id: "COD", label: "Tiền mặt khi nhận hàng", icon: "💵" },
-  { id: "BANKING", label: "Chuyển khoản ngân hàng", icon: "🏦" },
+  { id: "COD", label: "Tiền mặt khi nhận hàng", desc: "Thanh toán trực tiếp khi nhận đơn", icon: "💵" },
+  { id: "BANKING", label: "Chuyển khoản ngân hàng", desc: "Chuyển khoản qua app ngân hàng", icon: "🏦" },
 ];
 
 export default function PaymentPage() {
@@ -17,11 +20,13 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
+  const orderTotal = order?.totalAmount || 0;
+
   const handlePay = async () => {
     setLoading(true);
     try {
-      const res = await paymentService.pay({ orderId: id, method });
-      setResult({ success: true, data: res.data });
+      await paymentService.pay({ orderId: id, amount: orderTotal, method });
+      setResult({ success: true });
     } catch {
       setResult({ success: false });
     } finally {
@@ -31,87 +36,96 @@ export default function PaymentPage() {
 
   if (result) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-md w-full max-w-sm p-8 text-center">
-          <div className="text-5xl mb-4">{result.success ? "🎉" : "😞"}</div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">
-            {result.success ? "Đặt hàng thành công!" : "Thanh toán thất bại"}
+      <div className="flex items-center justify-center py-20 px-4">
+        <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-10 text-center">
+          <div className={`w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center text-4xl ${
+            result.success ? "bg-green-100" : "bg-red-100"
+          }`}>
+            {result.success ? "🎉" : "😞"}
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {result.success ? "Thanh toán thành công!" : "Thanh toán thất bại"}
           </h2>
           {result.success && (
-            <p className="text-gray-500 text-sm mb-6">
-              Đơn hàng #{id} của bạn đã được xác nhận. Chúng tôi sẽ chuẩn bị ngay!
+            <p className="text-gray-500 mb-8">
+              Đơn hàng #{id?.slice(-8)} đã được xác nhận.
             </p>
           )}
-          <button
-            onClick={() => navigate("/foods")}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl transition"
-          >
-            Đặt thêm món
-          </button>
-          {result.success && (
+          <div className="space-y-3">
             <button
-              onClick={() => navigate("/orders")}
-              className="w-full mt-2 border border-gray-300 text-gray-700 font-medium py-2.5 rounded-xl hover:bg-gray-50 transition"
+              onClick={() => navigate("/foods")}
+              className="w-full h-12 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold rounded-xl transition hover:from-orange-600 hover:to-amber-600"
             >
-              Xem đơn hàng
+              Tiếp tục đặt món
             </button>
-          )}
+            {result.success && (
+              <button
+                onClick={() => navigate("/orders")}
+                className="w-full h-12 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition"
+              >
+                Xem đơn hàng
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3">
-          <span className="font-bold text-gray-800">Thanh toán</span>
-        </div>
-      </nav>
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <h1 className="text-2xl font-bold text-gray-900 mb-8">Thanh toán</h1>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {/* Order summary */}
+      <div className="space-y-5">
         {order && (
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="font-semibold text-gray-700 mb-3 text-sm">Đơn hàng #{id}</h3>
-            <div className="space-y-2">
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">Chi tiết đơn hàng</h3>
+            <div className="space-y-3">
               {order.items?.map((item, idx) => (
-                <div key={idx} className="flex justify-between text-sm text-gray-600">
-                  <span>{item.foodName} × {item.quantity}</span>
-                  <span>{(item.price * item.quantity).toLocaleString("vi-VN")}đ</span>
+                <div key={idx} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">{getFoodEmoji(item.foodName)}</span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{item.foodName}</p>
+                      <p className="text-xs text-gray-400">x{item.quantity}</p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">
+                    {(item.unitPrice * item.quantity).toLocaleString("vi-VN")}đ
+                  </span>
                 </div>
               ))}
             </div>
-            <div className="border-t border-gray-100 mt-3 pt-3 flex justify-between font-bold text-gray-800">
-              <span>Tổng</span>
-              <span className="text-orange-600">{order.total?.toLocaleString("vi-VN")}đ</span>
+            <div className="border-t border-gray-100 mt-4 pt-4 flex justify-between">
+              <span className="font-bold text-gray-900">Tổng cộng</span>
+              <span className="font-bold text-orange-600 text-lg">{orderTotal.toLocaleString("vi-VN")}đ</span>
             </div>
           </div>
         )}
 
-        {/* Payment method */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <h3 className="font-semibold text-gray-700 mb-3 text-sm">Phương thức thanh toán</h3>
-          <div className="space-y-2">
+        <div className="bg-white rounded-2xl shadow-sm p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Phương thức thanh toán</h3>
+          <div className="space-y-3">
             {METHODS.map((m) => (
               <label
                 key={m.id}
-                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
+                className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
                   method === m.id
                     ? "border-orange-400 bg-orange-50"
-                    : "border-gray-200 hover:border-gray-300"
+                    : "border-gray-100 hover:border-gray-200"
                 }`}
               >
-                <input
-                  type="radio"
-                  name="method"
-                  value={m.id}
-                  checked={method === m.id}
-                  onChange={() => setMethod(m.id)}
-                  className="accent-orange-500"
-                />
-                <span className="text-xl">{m.icon}</span>
-                <span className="text-sm font-medium text-gray-700">{m.label}</span>
+                <input type="radio" name="method" value={m.id} checked={method === m.id} onChange={() => setMethod(m.id)} className="sr-only" />
+                <span className="text-2xl">{m.icon}</span>
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900 text-sm">{m.label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{m.desc}</p>
+                </div>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition ${
+                  method === m.id ? "border-orange-500" : "border-gray-300"
+                }`}>
+                  {method === m.id && <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />}
+                </div>
               </label>
             ))}
           </div>
@@ -120,9 +134,14 @@ export default function PaymentPage() {
         <button
           onClick={handlePay}
           disabled={loading}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition disabled:opacity-50"
+          className="w-full h-14 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold rounded-2xl transition shadow-lg shadow-orange-500/25 disabled:opacity-50 text-base"
         >
-          {loading ? "Đang xử lý..." : "Xác nhận thanh toán →"}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Đang xử lý...
+            </span>
+          ) : `Thanh toán · ${orderTotal.toLocaleString("vi-VN")}đ`}
         </button>
       </div>
     </div>
