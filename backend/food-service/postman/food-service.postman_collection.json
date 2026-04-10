@@ -1,0 +1,144 @@
+{
+  "info": {
+    "_postman_id": "7b8f6f44-0b8b-4fa3-a4f4-a39dc3d4f8b6",
+    "name": "Food Service API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "CRUD APIs for food-service"
+  },
+  "item": [
+    {
+      "name": "Create Food",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Pizza Hải Sản\",\n  \"description\": \"Pizza hải sản phô mai\",\n  \"price\": 129000,\n  \"category\": \"Pizza\",\n  \"available\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/foods",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "foods"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "var jsonData = pm.response.json();",
+              "if (jsonData && jsonData.id) {",
+              "    pm.collectionVariables.set('foodId', jsonData.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get All Foods",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/foods",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "foods"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Food By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/foods/{{foodId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "foods",
+            "{{foodId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Food",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Pizza Hải Sản Size L\",\n  \"description\": \"Pizza hải sản size lớn\",\n  \"price\": 159000,\n  \"category\": \"Pizza\",\n  \"available\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/foods/{{foodId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "foods",
+            "{{foodId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Delete Food",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/foods/{{foodId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "foods",
+            "{{foodId}}"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8082"
+    },
+    {
+      "key": "foodId",
+      "value": ""
+    }
+  ]
+}
