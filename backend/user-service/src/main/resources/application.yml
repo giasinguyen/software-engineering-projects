@@ -1,0 +1,13 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/minifood_user
+
+jwt:
+  secret: ZjQ3MTRkMjgtYjk1MS00ZGE3LTk2MzAtNWU3MjY0MTcyZDBlMTIzNDU2Nzg5MGFiY2RlZg==
+  expiration: 86400000
