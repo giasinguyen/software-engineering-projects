@@ -21,26 +21,26 @@ export const paymentApi = withAuth(axios.create({ baseURL: PAYMENT_SERVICE }));
 
 // User Service
 export const authService = {
-  register: (data) => userApi.post("/register", data),
-  login: (data) => userApi.post("/login", data),
-  getUsers: () => userApi.get("/users"),
+  register: (data) => userApi.post("/api/auth/register", data),
+  login: (data) => userApi.post("/api/auth/login", data),
+  getUsers: () => userApi.get("/api/users"),
 };
 
 // Food Service
 export const foodService = {
-  getAll: () => foodApi.get("/foods"),
-  create: (data) => foodApi.post("/foods", data),
-  update: (id, data) => foodApi.put(`/foods/${id}`, data),
-  delete: (id) => foodApi.delete(`/foods/${id}`),
+  getAll: () => foodApi.get("/api/foods"),
+  create: (data) => foodApi.post("/api/foods", data),
+  update: (id, data) => foodApi.put(`/api/foods/${id}`, data),
+  delete: (id) => foodApi.delete(`/api/foods/${id}`),
 };
 
 // Order Service
 export const orderService = {
-  create: (data) => orderApi.post("/orders", data),
-  getAll: () => orderApi.get("/orders"),
+  create: (data) => orderApi.post("/api/orders", data),
+  getAll: () => orderApi.get("/api/orders"),
 };
 
 // Payment Service
 export const paymentService = {
-  pay: (data) => paymentApi.post("/payments", data),
+  pay: (data) => paymentApi.post("/api/payments", data),
 };
