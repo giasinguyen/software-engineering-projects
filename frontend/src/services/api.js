@@ -34,8 +34,10 @@ export const foodService = {
 
 export const orderService = {
   create: (data) => orderApi.post("/orders", data),
-  getAll: () => orderApi.get("/orders"),
+  getAll: (userId) => orderApi.get("/orders", { params: userId ? { userId } : {} }),
   getById: (id) => orderApi.get(`/orders/${id}`),
+  updateStatus: (id, status) => orderApi.put(`/orders/${id}/status`, { status }),
+  cancel: (id) => orderApi.put(`/orders/${id}/cancel`),
 };
 
 export const paymentService = {

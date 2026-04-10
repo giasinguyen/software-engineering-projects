@@ -19,11 +19,11 @@ export default function OrdersPage() {
   const { user } = useAuth();
 
   useEffect(() => {
-    orderService.getAll()
+    const queryUserId = user?.role === "ADMIN" ? undefined : user?.id;
+    orderService.getAll(queryUserId)
       .then((res) => {
         const data = Array.isArray(res.data) ? res.data : [];
-        const filtered = user?.role === "ADMIN" ? data : data.filter((o) => o.userId === user?.id);
-        setOrders(filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+        setOrders(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
       })
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));

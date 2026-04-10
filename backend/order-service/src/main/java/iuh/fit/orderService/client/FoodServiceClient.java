@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * Client gọi Food Service để lấy thông tin món ăn.
- * Food Service cần expose: GET /foods/{id}
+ * Food Service cần expose: GET /api/foods/{id}
  * Response cần có: id, name, price
  *
  * URL cấu hình trong application.properties:
@@ -40,7 +40,7 @@ public class FoodServiceClient {
     public Map<String, Object> getFoodById(String foodId) {
         try {
             Map<String, Object> food = webClient.get()
-                    .uri("/foods/{id}", foodId)
+                    .uri("/api/foods/{id}", foodId)
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
