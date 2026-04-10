@@ -26,34 +26,47 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final FoodServiceClient foodServiceClient;
     private final UserServiceClient userServiceClient;
-    private final NotificationService notificationService;
-
-    // ─────────────────────────────────────────────────────────────────
+    private final NotificationService notificationService;    // ─────────────────────────────────────────────────────────────────
     // Tạo đơn hàng mới
     // ─────────────────────────────────────────────────────────────────
     public OrderResponse createOrder(CreateOrderRequest request) {
 
-        // 1. Validate user qua User Service
-        Map<String, Object> user = userServiceClient.getUserById(request.getUserId());
-        if (user == null) {
-            throw new RuntimeException("Không tìm thấy người dùng với ID: " + request.getUserId());
+        // 1. Validate user qua User Service (optional - nếu null thì dùng default)
+        String userName = "User-" + request.getUserId();  // Default name
+        try {
+            Map<String, Object> user = userServiceClient.getUserById(request.getUserId());
+            if (user != null) {
+                userName = resolveUserName(user);
+                log.info("Lấy thông tin user thành công: {}", userName);
+            } else {
+                log.warn("Không tìm thấy user ID: {}, dùng default name", request.getUserId());
+            }
+        } catch (Exception e) {
+            log.warn("Lỗi khi gọi User Service: {}, dùng default name", e.getMessage());
         }
-        String userName = resolveUserName(user);
 
-        // 2. Lấy thông tin từng món ăn qua Food Service
+        // 2. Lấy thông tin từng món ăn qua Food Service (optional - nếu null thì dùng default)
         List<OrderItem> orderItems = new ArrayList<>();
         double totalAmount = 0;
 
         for (CreateOrderRequest.OrderItemRequest itemReq : request.getItems()) {
-            Map<String, Object> food = foodServiceClient.getFoodById(itemReq.getFoodId());
-            if (food == null) {
-                throw new RuntimeException("Không tìm thấy món ăn với ID: " + itemReq.getFoodId());
+            String foodName = "Food-" + itemReq.getFoodId();
+            double unitPrice = 0;
+            
+            try {
+                Map<String, Object> food = foodServiceClient.getFoodById(itemReq.getFoodId());
+                if (food != null) {
+                    foodName = (String) food.getOrDefault("name", foodName);
+                    unitPrice = parseDouble(food.getOrDefault("price", 0));
+                    log.info("Lấy thông tin food thành công: {}", foodName);
+                } else {
+                    log.warn("Không tìm thấy food ID: {}, dùng default", itemReq.getFoodId());
+                }
+            } catch (Exception e) {
+                log.warn("Lỗi khi gọi Food Service cho food {}: {}", itemReq.getFoodId(), e.getMessage());
             }
 
-            String foodName = (String) food.getOrDefault("name", "Unknown");
-            double unitPrice = parseDouble(food.getOrDefault("price", 0));
             int quantity = itemReq.getQuantity() > 0 ? itemReq.getQuantity() : 1;
-
             OrderItem item = new OrderItem(itemReq.getFoodId(), foodName, quantity, unitPrice);
             orderItems.add(item);
             totalAmount += item.getSubtotal();

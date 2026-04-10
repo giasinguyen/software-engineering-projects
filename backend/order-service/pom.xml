@@ -53,6 +53,9 @@
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 
+		<!-- DotEnv để load .env file -->
+		<!-- Không cần nữa, URI để thẳng trong application.properties -->
+
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
