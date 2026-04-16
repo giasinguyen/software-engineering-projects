@@ -14,6 +14,8 @@ spring:
             allowedHeaders: "*"
             allowCredentials: false
             maxAge: 3600
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
       routes:
         # ─── User Service ───
         - id: user-service
