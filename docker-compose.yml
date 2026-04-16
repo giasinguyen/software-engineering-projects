@@ -1,29 +1,7 @@
-version: "3.8"
-
 services:
   # ─────────────────────────────────────────
-  # MongoDB  →  :27017
-  # ─────────────────────────────────────────
-  mongo:
-    image: mongo:7
-    container_name: mongo
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_DATABASE: minifood
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - minifood-net
-    restart: unless-stopped
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ─────────────────────────────────────────
   # User Service  →  :8081
+  # MongoDB: Atlas cloud
   # ─────────────────────────────────────────
   user-service:
     build:
@@ -32,11 +10,8 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/minifood
+      SPRING_DATA_MONGODB_URI: mongodb+srv://products:admin@mini-food-system.hbvvgpd.mongodb.net/minifood?retryWrites=true&w=majority&appName=mini-food-system
       SPRING_PROFILES_ACTIVE: docker
-    depends_on:
-      mongo:
-        condition: service_healthy
     networks:
       - minifood-net
     restart: unless-stopped
@@ -51,11 +26,8 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/minifood
+      DB_MONGODB_URL: mongodb+srv://products:admin@mini-food-system.hbvvgpd.mongodb.net/minifood?retryWrites=true&w=majority&appName=mini-food-system
       SPRING_PROFILES_ACTIVE: docker
-    depends_on:
-      mongo:
-        condition: service_healthy
     networks:
       - minifood-net
     restart: unless-stopped
@@ -71,17 +43,13 @@ services:
     ports:
       - "8083:8083"
     environment:
-      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/minifood
+      SPRING_DATA_MONGODB_URI: mongodb+srv://products:admin@mini-food-system.hbvvgpd.mongodb.net/minifood?retryWrites=true&w=majority&appName=mini-food-system
       SPRING_PROFILES_ACTIVE: docker
       APP_USER_SERVICE_URL: http://user-service:8081
       APP_FOOD_SERVICE_URL: http://food-service:8082
     depends_on:
-      mongo:
-        condition: service_healthy
-      user-service:
-        condition: service_started
-      food-service:
-        condition: service_started
+      - user-service
+      - food-service
     networks:
       - minifood-net
     restart: unless-stopped
@@ -98,14 +66,11 @@ services:
       - "8084:8084"
     environment:
       PORT: 8084
-      MONGO_URI: mongodb://mongo:27017/minifood
+      MONGO_URI: mongodb+srv://products:admin@mini-food-system.hbvvgpd.mongodb.net/minifood?retryWrites=true&w=majority&appName=mini-food-system
       ORDER_SERVICE: http://order-service:8083
       JWT_SECRET: ZjQ3MTRkMjgtYjk1MS00ZGE3LTk2MzAtNWU3MjY0MTcyZDBlMTIzNDU2Nzg5MGFiY2RlZg==
     depends_on:
-      mongo:
-        condition: service_healthy
-      order-service:
-        condition: service_started
+      - order-service
     networks:
       - minifood-net
     restart: unless-stopped
@@ -157,6 +122,3 @@ services:
 # ─────────────────────────────────────────
 networks:
   minifood-net:
-
-volumes:
-  mongo-data:
