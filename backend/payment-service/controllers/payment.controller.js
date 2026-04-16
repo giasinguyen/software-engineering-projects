@@ -1,18 +1,20 @@
 const axios = require("axios");
+const jwt = require("jsonwebtoken");
 const Payment = require("../models/Payment");
 const { notify } = require("../services/notification.service");
 const logger = require("../utils/logger");
 
 const ORDER_SERVICE = process.env.ORDER_SERVICE;
+const JWT_SECRET = process.env.JWT_SECRET;
 
-// Decode Bearer token (stub — không verify, tin tưởng client)
-const decodeToken = (req) => {
+// Verify JWT token — trả về payload hoặc null nếu invalid
+const verifyToken = (req) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return null;
-    const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString());
-    return payload;
-  } catch {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    logger.warn("JWT verification failed", { error: err.message });
     return null;
   }
 };
@@ -25,8 +27,11 @@ exports.createPayment = async (req, res) => {
       return res.status(400).json({ message: "orderId, amount, method là bắt buộc" });
     }
 
-    const user = decodeToken(req);
-    const userId = user?.sub || user?.id || "unknown";
+    const user = verifyToken(req);
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized — token không hợp lệ" });
+    }
+    const userId = user.sub || user.id || "unknown";
 
     // 1. Lưu payment với trạng thái PENDING
     const payment = await Payment.create({

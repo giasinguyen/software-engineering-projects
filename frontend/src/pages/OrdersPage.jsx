@@ -13,13 +13,17 @@ const STATUS_CONFIG = {
 const FOOD_EMOJIS = ["🍜","🍛","🍱","🍗","🥗","🍔","🥩","🍝","🍲","🥘","🍚","🍣","🥟","🍕","🌮","🥡"];
 const getFoodEmoji = (name = "") => FOOD_EMOJIS[name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % FOOD_EMOJIS.length];
 
+const STATUS_FLOW = ["PENDING", "CONFIRMED", "PREPARING", "DELIVERED"];
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
 
-  useEffect(() => {
-    const queryUserId = user?.role === "ADMIN" ? undefined : user?.id;
+  const loadOrders = () => {
+    setLoading(true);
+    const queryUserId = isAdmin ? undefined : user?.id;
     orderService.getAll(queryUserId)
       .then((res) => {
         const data = Array.isArray(res.data) ? res.data : [];
@@ -27,13 +31,40 @@ export default function OrdersPage() {
       })
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
-  }, [user]);
+  };
+
+  useEffect(() => { loadOrders(); }, [user]);
+
+  const handleNextStatus = async (order) => {
+    const idx = STATUS_FLOW.indexOf(order.status);
+    if (idx < 0 || idx >= STATUS_FLOW.length - 1) return;
+    const next = STATUS_FLOW[idx + 1];
+    try {
+      await orderService.updateStatus(order.id, next);
+      loadOrders();
+    } catch {
+      alert("Lỗi khi cập nhật trạng thái");
+    }
+  };
+
+  const handleCancel = async (orderId) => {
+    try {
+      await orderService.cancel(orderId);
+      loadOrders();
+    } catch {
+      alert("Lỗi khi hủy đơn");
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Đơn hàng của tôi</h1>
-        <p className="text-gray-500 text-sm mt-1">Theo dõi trạng thái đơn hàng</p>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {isAdmin ? "Quản lý đơn hàng" : "Đơn hàng của tôi"}
+        </h1>
+        <p className="text-gray-500 text-sm mt-1">
+          {isAdmin ? "Xem và cập nhật trạng thái đơn hàng" : "Theo dõi trạng thái đơn hàng"}
+        </p>
       </div>
 
       {loading ? (
@@ -91,6 +122,26 @@ export default function OrdersPage() {
                       {order.totalAmount?.toLocaleString("vi-VN")}đ
                     </span>
                   </div>
+
+                  {/* Admin actions */}
+                  {isAdmin && order.status !== "CANCELLED" && order.status !== "DELIVERED" && (
+                    <div className="flex items-center gap-2 pt-3 mt-3 border-t border-gray-100">
+                      {STATUS_FLOW.indexOf(order.status) < STATUS_FLOW.length - 1 && (
+                        <button
+                          onClick={() => handleNextStatus(order)}
+                          className="flex-1 h-9 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-xs font-semibold transition"
+                        >
+                          → {STATUS_CONFIG[STATUS_FLOW[STATUS_FLOW.indexOf(order.status) + 1]]?.label}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleCancel(order.id)}
+                        className="h-9 px-4 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-xs font-semibold transition"
+                      >
+                        Hủy đơn
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
