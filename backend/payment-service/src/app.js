@@ -8,6 +8,10 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Health check endpoint
+app.get("/health", (req, res) => res.json({ status: "UP" }));
+
 app.use(paymentRoutes);
 
 const PORT = process.env.PORT || 8084;
@@ -16,4 +20,7 @@ connectDB().then(() => {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Payment Service running on port ${PORT}`);
   });
+}).catch((err) => {
+  console.error("Failed to connect to MongoDB:", err.message);
+  process.exit(1);
 });

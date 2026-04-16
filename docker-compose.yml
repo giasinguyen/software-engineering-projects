@@ -16,6 +16,11 @@ services:
     networks:
       - minifood-net
     restart: unless-stopped
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # ─────────────────────────────────────────
   # User Service  →  :8081
@@ -29,7 +34,8 @@ services:
     environment:
       SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/minifood
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     networks:
       - minifood-net
     restart: unless-stopped
@@ -46,7 +52,8 @@ services:
     environment:
       SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/minifood
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     networks:
       - minifood-net
     restart: unless-stopped
@@ -67,9 +74,12 @@ services:
       APP_USER_SERVICE_URL: http://user-service:8081
       APP_FOOD_SERVICE_URL: http://food-service:8082
     depends_on:
-      - mongo
-      - user-service
-      - food-service
+      mongo:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      food-service:
+        condition: service_started
     networks:
       - minifood-net
     restart: unless-stopped
@@ -89,8 +99,10 @@ services:
       MONGO_URI: mongodb://mongo:27017/minifood
       ORDER_SERVICE: http://order-service:8083
     depends_on:
-      - mongo
-      - order-service
+      mongo:
+        condition: service_healthy
+      order-service:
+        condition: service_started
     networks:
       - minifood-net
     restart: unless-stopped
