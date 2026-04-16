@@ -4,7 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -34,6 +36,7 @@ public class UserServiceClient {
     /**
      * Validate user theo ID.
      * Trả về Map chứa thông tin user, hoặc null nếu không tồn tại / lỗi.
+     * Timeout: 5s, Retry: 3 lần với backoff 1s.
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getUserById(String userId) {
@@ -42,6 +45,10 @@ public class UserServiceClient {
                     .uri("/users/{id}", userId)
                     .retrieve()
                     .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(5))
+                    .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
+                            .doBeforeRetry(signal -> log.warn("Retry #{} gọi User Service cho userId={}",
+                                    signal.totalRetries() + 1, userId)))
                     .block();
             log.info("Validate user thành công: userId={}", userId);
             return user;

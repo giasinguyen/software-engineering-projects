@@ -1,6 +1,7 @@
 const axios = require("axios");
 const Payment = require("../models/Payment");
 const { notify } = require("../services/notification.service");
+const logger = require("../utils/logger");
 
 const ORDER_SERVICE = process.env.ORDER_SERVICE;
 
@@ -48,7 +49,7 @@ exports.createPayment = async (req, res) => {
         { headers: { Authorization: req.headers.authorization } }
       );
     } catch (err) {
-      console.warn("[Payment] Không thể cập nhật Order Service:", err.message);
+      logger.warn("Không thể cập nhật Order Service", { orderId, error: err.message });
     }
 
     // 4. Gửi notification
@@ -56,7 +57,7 @@ exports.createPayment = async (req, res) => {
 
     res.status(201).json({ message: "Thanh toán thành công", payment });
   } catch (err) {
-    console.error(err);
+    logger.error("Payment creation failed", { error: err.message });
     res.status(500).json({ message: "Lỗi server", error: err.message });
   }
 };

@@ -33,6 +33,7 @@ services:
       - "8081:8081"
     environment:
       SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/minifood
+      SPRING_PROFILES_ACTIVE: docker
     depends_on:
       mongo:
         condition: service_healthy
@@ -51,6 +52,7 @@ services:
       - "8082:8082"
     environment:
       SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/minifood
+      SPRING_PROFILES_ACTIVE: docker
     depends_on:
       mongo:
         condition: service_healthy
@@ -70,7 +72,7 @@ services:
       - "8083:8083"
     environment:
       SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/minifood
-      # Override localhost → container names (Spring Boot relaxed binding)
+      SPRING_PROFILES_ACTIVE: docker
       APP_USER_SERVICE_URL: http://user-service:8081
       APP_FOOD_SERVICE_URL: http://food-service:8082
     depends_on:
@@ -108,21 +110,43 @@ services:
     restart: unless-stopped
 
   # ─────────────────────────────────────────
-  # Frontend  →  :80  (React → Nginx)
-  # Browser gọi trực tiếp localhost:PORT nên
-  # VITE_* dùng default localhost là đúng
+  # API Gateway  →  :8080
+  # Single entry point cho tất cả services
   # ─────────────────────────────────────────
-  frontend:
+  api-gateway:
     build:
-      context: ./frontend
-    container_name: frontend
+      context: ./backend/api-gateway
+    container_name: api-gateway
     ports:
-      - "80:80"
+      - "8080:8080"
+    environment:
+      USER_SERVICE_URL: http://user-service:8081
+      FOOD_SERVICE_URL: http://food-service:8082
+      ORDER_SERVICE_URL: http://order-service:8083
+      PAYMENT_SERVICE_URL: http://payment-service:8084
     depends_on:
       - user-service
       - food-service
       - order-service
       - payment-service
+    networks:
+      - minifood-net
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # Frontend  →  :80  (React → Nginx)
+  # Gọi qua API Gateway tại :8080
+  # ─────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8080
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
     networks:
       - minifood-net
     restart: unless-stopped

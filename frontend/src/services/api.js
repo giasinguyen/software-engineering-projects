@@ -1,9 +1,8 @@
 ﻿import axios from "axios";
 
-const USER_SERVICE = import.meta.env.VITE_USER_SERVICE || "http://localhost:8081";
-const FOOD_SERVICE = import.meta.env.VITE_FOOD_SERVICE || "http://localhost:8082";
-const ORDER_SERVICE = import.meta.env.VITE_ORDER_SERVICE || "http://localhost:8083";
-const PAYMENT_SERVICE = import.meta.env.VITE_PAYMENT_SERVICE || "http://localhost:8084";
+// Sử dụng API Gateway làm single entry point
+// Fallback: gọi trực tiếp từng service nếu không có gateway
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 const withAuth = (instance) => {
   instance.interceptors.request.use((config) => {
@@ -14,10 +13,12 @@ const withAuth = (instance) => {
   return instance;
 };
 
-export const userApi = withAuth(axios.create({ baseURL: USER_SERVICE }));
-export const foodApi = withAuth(axios.create({ baseURL: FOOD_SERVICE }));
-export const orderApi = withAuth(axios.create({ baseURL: ORDER_SERVICE }));
-export const paymentApi = withAuth(axios.create({ baseURL: PAYMENT_SERVICE }));
+const api = withAuth(axios.create({ baseURL: API_BASE }));
+
+export const userApi = api;
+export const foodApi = api;
+export const orderApi = api;
+export const paymentApi = api;
 
 export const authService = {
   register: (data) => userApi.post("/api/auth/register", data),

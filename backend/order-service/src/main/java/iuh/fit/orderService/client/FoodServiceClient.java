@@ -4,7 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -35,6 +37,7 @@ public class FoodServiceClient {
      * Lấy thông tin món ăn theo ID.
      * Trả về Map<String, Object> để linh hoạt với mọi cấu trúc response của Food Service.
      * Trả về null nếu không tìm thấy hoặc lỗi.
+     * Timeout: 5s, Retry: 3 lần với backoff 1s.
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getFoodById(String foodId) {
@@ -43,6 +46,10 @@ public class FoodServiceClient {
                     .uri("/api/foods/{id}", foodId)
                     .retrieve()
                     .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(5))
+                    .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
+                            .doBeforeRetry(signal -> log.warn("Retry #{} gọi Food Service cho foodId={}",
+                                    signal.totalRetries() + 1, foodId)))
                     .block();
             log.info("Lấy thông tin food thành công: foodId={}", foodId);
             return food;
