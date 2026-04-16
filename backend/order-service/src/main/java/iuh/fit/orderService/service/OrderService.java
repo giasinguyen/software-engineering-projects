@@ -131,6 +131,10 @@ public class OrderService {
         validateStatusTransition(order.getStatus(), request.getStatus());
 
         order.setStatus(request.getStatus());
+        // Đồng bộ phương thức thanh toán nếu payment-service gửi kèm
+        if (request.getPaymentMethod() != null) {
+            order.setPaymentMethod(request.getPaymentMethod());
+        }
         order.setUpdatedAt(LocalDateTime.now());
 
         Order updated = orderRepository.save(order);

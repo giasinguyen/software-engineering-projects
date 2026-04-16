@@ -40,11 +40,11 @@ exports.createPayment = async (req, res) => {
     payment.status = "SUCCESS";
     await payment.save();
 
-    // 3. Gọi Order Service cập nhật trạng thái đơn hàng → CONFIRMED
+    // 3. Gọi Order Service cập nhật trạng thái đơn hàng → CONFIRMED + đồng bộ paymentMethod
     try {
       await axios.put(
         `${ORDER_SERVICE}/orders/${orderId}/status`,
-        { status: "CONFIRMED" },
+        { status: "CONFIRMED", paymentMethod: method },
         { headers: { Authorization: req.headers.authorization } }
       );
     } catch (err) {
