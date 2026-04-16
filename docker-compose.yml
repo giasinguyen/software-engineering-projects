@@ -2,6 +2,22 @@ version: "3.8"
 
 services:
   # ─────────────────────────────────────────
+  # MongoDB  →  :27017
+  # ─────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: minifood
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - minifood-net
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
   # User Service  →  :8081
   # ─────────────────────────────────────────
   user-service:
@@ -11,7 +27,9 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATA_MONGODB_URI: ${MONGO_URI}
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/minifood
+    depends_on:
+      - mongo
     networks:
       - minifood-net
     restart: unless-stopped
@@ -26,7 +44,9 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_DATA_MONGODB_URI: ${MONGO_URI}
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/minifood
+    depends_on:
+      - mongo
     networks:
       - minifood-net
     restart: unless-stopped
@@ -42,11 +62,12 @@ services:
     ports:
       - "8083:8083"
     environment:
-      SPRING_DATA_MONGODB_URI: ${MONGO_URI}
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/minifood
       # Override localhost → container names (Spring Boot relaxed binding)
       APP_USER_SERVICE_URL: http://user-service:8081
       APP_FOOD_SERVICE_URL: http://food-service:8082
     depends_on:
+      - mongo
       - user-service
       - food-service
     networks:
@@ -65,9 +86,10 @@ services:
       - "8084:8084"
     environment:
       PORT: 8084
-      MONGO_URI: ${MONGO_URI}
+      MONGO_URI: mongodb://mongo:27017/minifood
       ORDER_SERVICE: http://order-service:8083
     depends_on:
+      - mongo
       - order-service
     networks:
       - minifood-net
@@ -98,4 +120,6 @@ services:
 # ─────────────────────────────────────────
 networks:
   minifood-net:
-    driver: bridge
+
+volumes:
+  mongo-data:
