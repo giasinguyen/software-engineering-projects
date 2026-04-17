@@ -1,0 +1,41 @@
+services:
+  user-service:
+    build: ./backend/user-service
+    ports:
+      - "8081:8081"
+    environment:
+      - RABBITMQ_URI=${RABBITMQ_URI}
+    restart: unless-stopped
+
+  movie-service:
+    build: ./backend/movie-service
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+
+  booking-service:
+    build: ./backend/booking-service
+    ports:
+      - "8083:8083"
+    environment:
+      - RABBITMQ_URI=${RABBITMQ_URI}
+    restart: unless-stopped
+
+  payment-notification-service:
+    build: ./backend/payment-notification-service
+    ports:
+      - "8084:8084"
+    environment:
+      - RABBITMQ_URI=${RABBITMQ_URI}
+      - PORT=8084
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - user-service
+      - movie-service
+      - booking-service
+    restart: unless-stopped
