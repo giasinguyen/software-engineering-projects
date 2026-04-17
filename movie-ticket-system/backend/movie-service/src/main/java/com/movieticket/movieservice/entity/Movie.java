@@ -22,5 +22,7 @@ public class Movie {
 
     private String posterUrl;
 
+    private String imdbId;
+
     private int totalSeats;
 }

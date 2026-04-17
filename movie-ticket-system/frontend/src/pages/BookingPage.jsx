@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { bookingService } from "../services/api";
+import { bookingService, imdbService } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
 export default function BookingPage() {
@@ -11,11 +11,21 @@ export default function BookingPage() {
   const [seatNumber, setSeatNumber] = useState(1);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [imdb, setImdb] = useState(null);
+
+  useEffect(() => {
+    if (movie?.imdbId) {
+      imdbService.getTitle(movie.imdbId).then(({ data }) => setImdb(data)).catch(() => {});
+    }
+  }, [movie]);
 
   if (!movie || !user) {
     navigate("/");
     return null;
   }
+
+  const posterUrl = imdb?.primaryImage?.url || movie.posterUrl || null;
+  const rating = imdb?.rating?.aggregateRating;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,9 +70,27 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-2">Book Ticket</h1>
-      <p className="text-yellow-400 mb-6">{movie.title}</p>
+    <div className="max-w-lg mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Book Ticket</h1>
+      <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 mb-6 flex gap-4">
+        {posterUrl && (
+          <img
+            src={posterUrl}
+            alt={movie.title}
+            className="w-32 h-48 object-cover shrink-0"
+          />
+        )}
+        <div className="p-4 flex flex-col justify-center">
+          <h2 className="text-xl font-bold text-yellow-400">{movie.title}</h2>
+          {rating && (
+            <p className="text-yellow-300 text-sm mt-1">⭐ {rating.toFixed(1)} / 10</p>
+          )}
+          <p className="text-gray-400 text-sm mt-1">{movie.genre} • {movie.duration} min</p>
+          {imdb?.plot && (
+            <p className="text-gray-500 text-xs mt-2 line-clamp-3">{imdb.plot}</p>
+          )}
+        </div>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-gray-400 mb-1">Seat Number</label>

@@ -33,6 +33,7 @@ public class MovieService {
         movie.setGenre(updated.getGenre());
         movie.setDuration(updated.getDuration());
         movie.setPosterUrl(updated.getPosterUrl());
+        movie.setImdbId(updated.getImdbId());
         movie.setTotalSeats(updated.getTotalSeats());
         return movieRepository.save(movie);
     }
