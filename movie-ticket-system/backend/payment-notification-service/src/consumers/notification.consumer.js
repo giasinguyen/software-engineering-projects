@@ -15,7 +15,12 @@ export async function startNotificationConsumer() {
     if (!msg) return;
 
     const event = JSON.parse(msg.content.toString());
-    console.log(`[Notification] ✅ Booking #${event.bookingId} thành công! Movie: ${event.movieTitle}, Seat: ${event.seatNumber}`);
+    console.log(
+      `[Notification] ✅ Booking #${event.bookingId} thành công! ` +
+      `Movie: "${event.movieTitle}", Seat: ${event.seatNumber}, ` +
+      `Amount: ${event.amount?.toLocaleString("vi-VN")} ${event.currency}, ` +
+      `Method: ${event.method}, TXN: ${event.transactionId}`
+    );
 
     channel.ack(msg);
   });

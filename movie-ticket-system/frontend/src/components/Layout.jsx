@@ -22,6 +22,7 @@ export default function Layout() {
             {user ? (
               <>
                 <Link to="/bookings" className="hover:text-yellow-400">My Bookings</Link>
+                <Link to="/payments" className="hover:text-yellow-400">Payments</Link>
                 <span className="text-gray-400">Hi, {user.username}</span>
                 <button onClick={handleLogout} className="text-red-400 hover:text-red-300">
                   Logout

@@ -1,4 +1,5 @@
 import { getChannel, EXCHANGE } from "../config/rabbitmq.js";
+import { processPayment } from "../services/payment.service.js";
 
 const QUEUE = "payment.queue";
 const BINDING_KEY = "booking.created";
@@ -17,27 +18,42 @@ export async function startPaymentConsumer() {
     const event = JSON.parse(msg.content.toString());
     console.log(`[Payment] Received BOOKING_CREATED for booking #${event.bookingId}`);
 
-    const success = Math.random() < 0.7;
+    const payment = processPayment({
+      bookingId: event.bookingId,
+      userId: event.userId,
+      movieTitle: event.movieTitle,
+      seatNumber: event.seatNumber,
+    });
 
-    if (success) {
-      const paymentEvent = {
-        event: "PAYMENT_COMPLETED",
-        bookingId: event.bookingId,
-        userId: event.userId,
-        movieTitle: event.movieTitle,
-        seatNumber: event.seatNumber,
-      };
-      channel.publish(EXCHANGE, "payment.completed", Buffer.from(JSON.stringify(paymentEvent)));
-      console.log(`[Payment] Booking #${event.bookingId} → PAYMENT_COMPLETED`);
+    if (payment.status === "SUCCESS") {
+      channel.publish(
+        EXCHANGE,
+        "payment.completed",
+        Buffer.from(JSON.stringify({
+          event: "PAYMENT_COMPLETED",
+          bookingId: payment.bookingId,
+          userId: payment.userId,
+          movieTitle: payment.movieTitle,
+          seatNumber: payment.seatNumber,
+          amount: payment.amount,
+          currency: payment.currency,
+          method: payment.method,
+          transactionId: payment.transactionId,
+        }))
+      );
+      console.log(`[Payment] #${payment.id} Booking #${payment.bookingId} → SUCCESS (${payment.method}, TXN: ${payment.transactionId})`);
     } else {
-      const failEvent = {
-        event: "BOOKING_FAILED",
-        bookingId: event.bookingId,
-        userId: event.userId,
-        reason: "Payment declined",
-      };
-      channel.publish(EXCHANGE, "booking.failed", Buffer.from(JSON.stringify(failEvent)));
-      console.log(`[Payment] Booking #${event.bookingId} → BOOKING_FAILED`);
+      channel.publish(
+        EXCHANGE,
+        "booking.failed",
+        Buffer.from(JSON.stringify({
+          event: "BOOKING_FAILED",
+          bookingId: payment.bookingId,
+          userId: payment.userId,
+          reason: payment.failureReason,
+        }))
+      );
+      console.log(`[Payment] #${payment.id} Booking #${payment.bookingId} → FAILED (${payment.failureReason})`);
     }
 
     channel.ack(msg);
