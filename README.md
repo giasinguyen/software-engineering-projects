@@ -1,108 +1,246 @@
-Buổi 5 — SERVICE-BASED ARCHITECTURE 🎶 🎶
-Bài toán: Mini Food Ordering System
-Một công ty muốn xây dựng hệ thống đặt món ăn nội bộ cho nhân viên (giống 
-ShopeeFood mini).
-❖  Yêu cầu chức năng:
-1.  Quản lý món ăn:
-•  Xem danh sách món ăn
-•  Thêm / sửa / xóa món ăn
-2.  Quản lý người dùng:
-•  Đăng ký / đăng nhập
-•  Phân quyền (USER / ADMIN)
-3.  Đặt món:
-•  Thêm món vào giỏ hàng
-•  Tạo đơn hàng
-4.  Thanh toán (giả lập):
-•  Chọn phương thức thanh toán (COD / Banking)
-•  Cập nhật trạng thái đơn hàng 
-5.  Thông báo
-•  Khi đặt hàng thành công → gửi thông báo (console log hoặc REST call)
-❖  Yêu cầu kiến trúc:
-Áp dụng Service-Based Architecture:
-•  Mỗi chức năng = 1 service riêng biệt (Spring Boot)
-•  Giao tiếp qua REST API (HTTP)
-•  Có thể dùng API Gateway (optional)
-Phân công 5 người:
-❖  Người 1– Frontend (ReactJS)
-UI: 
-•  Login/Register 
-•  Danh sách món 
-•  Giỏ hàng 
-•  Đặt hàng 
-Gọi API từ các service 
-Tech:
-•  ReactJS + Axios 
-Bài tập thực hành Kiến trúc và thiết kế phần mềm
+# 🍔 Mini Food Ordering System — Service-Based Architecture
 
-2
-❖  Người 2 – User Service (Spring Boot)
-API: 
-•  POST /register 
-•  POST /login 
-•  GET /users 
-Yêu cầu:
-•  JWT đơn giản (optional) 
-•  Lưu memory hoặc H2 
-❖  Người 3 – Food Service
-API: 
-•  GET /foods 
-•  POST /foods 
-•  PUT /foods/{id} 
-•  DELETE /foods/{id} 
-Yêu cầu:
-•  Không cần auth phức tạp 
-•  Seed sẵn dữ liệu 
-❖  Người 4 – Order Service
-API: 
-•  POST /orders 
-•  GET /orders 
-Khi tạo order: 
-•  Gọi Food Service để lấy thông tin món 
-•  Gọi User Service để validate user 
-❖  Người 5 – Payment + Notification Service
-API: 
-•  POST /payments 
-Khi thanh toán: 
-•  Update trạng thái order (gọi Order Service) 
-•  Gửi notification 
-Notification:
-•  Gọi API hoặc log:
+A mini internal food ordering system inspired by ShopeeFood, built using **Service-Based Architecture**. Each core functionality is separated into independent services communicating via REST APIs.
+
+---
+
+## 🚀 Overview
+
+This project demonstrates how to design and implement a distributed system using **Spring Boot microservices** and a **ReactJS frontend**.
+
+The system allows users to:
+
+* Browse food items 🍜
+* Add items to cart 🛒
+* Place orders 📦
+* Simulate payments 💳
+* Receive notifications 🔔
+
+---
+
+## 🏗️ Architecture
+
+We follow **Service-Based Architecture**, where each module is an independent service:
+
+```
+Frontend (ReactJS)
+        ↓
+-----------------------------------------
+|   User Service     (Port 8081)        |
+|   Food Service     (Port 8082)        |
+|   Order Service    (Port 8083)        |
+|   Payment Service  (Port 8084)        |
+-----------------------------------------
+```
+
+* Communication: **REST API (HTTP)**
+* Optional: API Gateway (Spring Cloud Gateway)
+
+---
+
+## 🧩 Services
+
+### 👤 User Service
+
+Handles authentication and user management.
+
+**Endpoints:**
+
+* `POST /register` — Register new user
+* `POST /login` — Login
+* `GET /users` — Get all users
+
+**Features:**
+
+* Basic authentication (JWT optional)
+* Storage: In-memory or H2 database
+
+---
+
+### 🍱 Food Service
+
+Manages food items.
+
+**Endpoints:**
+
+* `GET /foods` — Get all foods
+* `POST /foods` — Add new food
+* `PUT /foods/{id}` — Update food
+* `DELETE /foods/{id}` — Delete food
+
+**Features:**
+
+* Pre-seeded data
+* No complex authentication required
+
+---
+
+### 📦 Order Service
+
+Handles order creation and management.
+
+**Endpoints:**
+
+* `POST /orders` — Create order
+* `GET /orders` — Get all orders
+
+**Responsibilities:**
+
+* Calls **Food Service** to fetch food details
+* Calls **User Service** to validate user
+
+---
+
+### 💳 Payment & Notification Service
+
+Processes payments and sends notifications.
+
+**Endpoints:**
+
+* `POST /payments`
+
+**Responsibilities:**
+
+* Update order status (via Order Service)
+* Send notification (console log or API)
+
+**Example Notification:**
+
+```
 User A đã đặt đơn #123 thành công
-Mô hình triển khai (LAN)
-•  Mỗi người chạy service trên máy riêng: 
-▪  192.168.?.?:8081 → User Service 
-▪  192.168. ?.?:8082 → Food Service  
+```
 
-3
-▪  192.168. ?.?:8083 → Order Service 
-▪  192.168. ?.?:8084 → Payment Service 
-•  Frontend gọi trực tiếp 
-Cấu hình CORS + IP thật (KHÔNG dùng localhost chéo máy)
-Kịch bản Test (BẮT BUỘC DEMO)
-1.  User đăng ký + login 
-2.  Xem danh sách món 
-3.  Thêm vào giỏ → tạo order 
-4.  Thanh toán 
-5.  Nhận thông báo
-Bonus (nếu còn thời gian)
-1.  API Gateway (Spring Cloud Gateway)
-2.  Load balancing (round robin giả lập)
-3.  Retry khi service fail 
-4.  Logging tập trung
-Tiêu chí chấm điểm
-Tiêu chí  Điểm
-Đúng kiến trúc Service-Based  3
-API hoạt động  2
-Giao tiếp giữa services  2
-Frontend chạy mượt  1.5
-Demo hoàn chỉnh  1
-Giai đoạn 2 (Homework):
-•  Dockerize
-▪  Mỗi service = 1 container
-▪  docker-compose chạy toàn hệ thống
-•  Deploy local server (1 máy)
-Giai đoạn 3: (Optional)
-•  Dockerize
-▪  Chạy hệ thống trên 1 server thật (VPS hoặc máy lab)
-Bài tập thực hành Kiến trúc và thiết kế phần mềm
+---
+
+### 🎨 Frontend (ReactJS)
+
+User interface for the system.
+
+**Pages:**
+
+* Login / Register
+* Food list
+* Cart
+* Checkout
+
+**Tech Stack:**
+
+* ReactJS
+* Axios
+
+---
+
+## 🌐 Deployment (LAN Setup)
+
+Each service runs on a different machine:
+
+| Service         | Port |
+| --------------- | ---- |
+| User Service    | 8081 |
+| Food Service    | 8082 |
+| Order Service   | 8083 |
+| Payment Service | 8084 |
+
+⚠️ Important:
+
+* Use **real IP addresses** (e.g. `192.168.x.x`)
+* Configure **CORS properly**
+* Do NOT use `localhost` across machines
+
+---
+
+## 🧪 Demo Flow (Required)
+
+1. User registers & logs in
+2. View food list
+3. Add items to cart → create order
+4. Make payment
+5. Receive notification
+
+---
+
+## ⭐ Bonus Features
+
+* API Gateway (Spring Cloud Gateway)
+* Load balancing (round-robin simulation)
+* Retry mechanism when services fail
+* Centralized logging
+
+---
+
+## 🐳 Docker (Phase 2)
+
+* Each service runs in a container
+* Use `docker-compose` to start the whole system
+
+```bash
+docker-compose up --build
+```
+
+---
+
+## ☁️ Deployment (Phase 3 - Optional)
+
+* Deploy to VPS or lab server
+* Run full system on a single host
+
+---
+
+## 🗄️ Database
+
+Example MongoDB connection:
+
+```
 mongodb+srv://products:<db_password>@mini-food-system.hbvvgpd.mongodb.net/?appName=mini-food-system
+```
+
+---
+
+## 📊 Grading Criteria
+
+| Criteria                           | Score |
+| ---------------------------------- | ----- |
+| Correct Service-Based Architecture | 3     |
+| API functionality                  | 2     |
+| Inter-service communication        | 2     |
+| Smooth frontend                    | 1.5   |
+| Complete demo                      | 1     |
+
+---
+
+## 👥 Team Roles
+
+| Role          | Responsibility             |
+| ------------- | -------------------------- |
+| Frontend Dev  | React UI + API integration |
+| Backend Dev 1 | User Service               |
+| Backend Dev 2 | Food Service               |
+| Backend Dev 3 | Order Service              |
+| Backend Dev 4 | Payment + Notification     |
+
+---
+
+## 🛠️ Tech Stack
+
+* Backend: Spring Boot
+* Frontend: ReactJS
+* Communication: REST API
+* Database: H2 / MongoDB
+* Containerization: Docker
+
+---
+
+## 📌 Notes
+
+* Keep services independent
+* Handle service failures gracefully
+* Focus on clear API contracts
+* Logging is important for debugging
+
+---
+
+If you want, I can also:
+
+* generate **folder structure for each service**
+* write **sample Spring Boot code (controller/service)**
+* or create a **docker-compose.yml ready to run**
