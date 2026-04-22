@@ -16,13 +16,13 @@ spring:
       enabled: true
       path: /h2-console
   rabbitmq:
-    host: armadillo.rmq.cloudamqp.com
-    port: 5671
-    username: cucfpjwl
-    password: Jbwwm-HQWFMdIqi2pExZyZOjmi1AnF2D
-    virtual-host: cucfpjwl
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
     ssl:
-      enabled: true
+      enabled: ${RABBITMQ_SSL:false}
 
 app:
   rabbitmq:
