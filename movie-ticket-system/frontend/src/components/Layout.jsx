@@ -1,158 +1,186 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-
-const Icons = {
-  dashboard: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-      <rect x="3" y="3" width="7" height="7" rx="1.5" />
-      <rect x="14" y="3" width="7" height="7" rx="1.5" />
-      <rect x="3" y="14" width="7" height="7" rx="1.5" />
-      <rect x="14" y="14" width="7" height="7" rx="1.5" />
-    </svg>
-  ),
-  movies: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-      <rect x="2" y="4" width="20" height="16" rx="2" />
-      <path d="M2 9h20M7 4v5M12 4v5M17 4v5M7 15v5M12 15v5M17 15v5" strokeLinecap="round" />
-    </svg>
-  ),
-  bookings: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" strokeLinecap="round" />
-      <rect x="9" y="3" width="6" height="4" rx="1" />
-      <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  payments: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-      <rect x="2" y="5" width="20" height="14" rx="2" />
-      <path d="M2 10h20M6 15h4" strokeLinecap="round" />
-    </svg>
-  ),
-  events: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  user: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
-    </svg>
-  ),
-  logout: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-};
-
-function SideNavItem({ to, icon, children }) {
-  return (
-    <NavLink
-      to={to}
-      className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all ${
-          isActive
-            ? "bg-white text-neutral-900 font-medium shadow-sm"
-            : "text-neutral-400 hover:text-white hover:bg-white/10"
-        }`
-      }
-    >
-      <span className="shrink-0">{icon}</span>
-      {children}
-    </NavLink>
-  );
-}
+import { useState, useEffect } from "react";
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
+  const navLinks = [
+    { to: "/", label: "Home" },
+    { to: "/movies", label: "Movies" },
+    { to: "/events", label: "Event Flow" },
+  ];
+
+  const authLinks = user
+    ? [
+        { to: "/bookings", label: "My Bookings" },
+        { to: "/payments", label: "Payments" },
+      ]
+    : [];
+
   return (
-    <div className="flex min-h-screen bg-neutral-50">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-60 bg-[#0a0a0a] flex flex-col z-50">
-        {/* Logo */}
-        <div className="px-5 py-5 border-b border-white/[0.07]">
-          <Link to="/dashboard" className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white rounded flex items-center justify-center shrink-0">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="2" strokeLinecap="round">
+    <div className="min-h-screen bg-black">
+      {/* ── Floating Top Navbar ──────────────────────────────────────────────── */}
+      <nav
+        className={`fixed top-0 left-0 right-0 z-[90] transition-all duration-300 ${
+          scrolled ? "bg-black/90 backdrop-blur-lg border-b border-[#1a1a1a]" : "bg-transparent"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3 shrink-0 group cursor-pointer">
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center transition-transform group-hover:scale-105">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round">
                 <rect x="2" y="4" width="20" height="16" rx="2" />
                 <path d="M2 9h20M7 4v5M17 4v5M7 15v5M17 15v5" />
               </svg>
             </div>
             <div>
-              <p className="text-white font-semibold text-sm leading-none tracking-widest">MOVIETIX</p>
-              <p className="text-neutral-600 text-[10px] mt-0.5 tracking-wider">EVENT-DRIVEN</p>
+              <p className="text-white font-bold text-sm tracking-[0.2em] font-display leading-none">MOVIETIX</p>
+              <p className="text-[#555] text-[9px] tracking-[0.15em] mt-0.5">EVENT-DRIVEN</p>
             </div>
           </Link>
-        </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          <p className="text-[10px] font-semibold text-neutral-700 uppercase tracking-widest px-3 mb-2">Main</p>
-          <SideNavItem to="/dashboard" icon={Icons.dashboard}>Dashboard</SideNavItem>
-          <SideNavItem to="/movies" icon={Icons.movies}>Movies</SideNavItem>
-          {user && (
-            <>
-              <SideNavItem to="/bookings" icon={Icons.bookings}>My Bookings</SideNavItem>
-              <SideNavItem to="/payments" icon={Icons.payments}>Payments</SideNavItem>
-            </>
-          )}
-          <div className="pt-3 mt-2">
-            <p className="text-[10px] font-semibold text-neutral-700 uppercase tracking-widest px-3 mb-2">System</p>
-            <SideNavItem to="/events" icon={Icons.events}>Event Flow</SideNavItem>
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center gap-1">
+            {[...navLinks, ...authLinks].map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.to === "/"}
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+                    isActive
+                      ? "text-white bg-[#1a1a1a]"
+                      : "text-[#888] hover:text-white hover:bg-[#111]"
+                  }`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
           </div>
-        </nav>
 
-        {/* User section */}
-        <div className="px-3 py-4 border-t border-white/[0.07]">
-          {user ? (
-            <div>
-              <div className="flex items-center gap-3 px-3 py-2 mb-1">
-                <div className="w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center shrink-0 text-neutral-400">
-                  {Icons.user}
+          {/* Auth buttons */}
+          <div className="hidden md:flex items-center gap-3">
+            {user ? (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center text-xs font-bold text-white uppercase">
+                    {user.username?.[0] || "U"}
+                  </div>
+                  <span className="text-sm text-[#a0a0a0]">{user.username}</span>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{user.username}</p>
-                  <p className="text-neutral-500 text-xs truncate">{user.email || "Authenticated"}</p>
-                </div>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-1.5 rounded-lg text-sm text-[#888] border border-[#333] hover:text-white hover:border-[#555] transition-colors cursor-pointer"
+                >
+                  Sign out
+                </button>
               </div>
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                {Icons.logout}
-                Sign out
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <Link
-                to="/login"
-                className="flex items-center justify-center w-full px-3 py-2 rounded-md text-sm text-white bg-white/10 hover:bg-white/15 transition-colors font-medium"
-              >
-                Sign in
-              </Link>
-              <Link
-                to="/register"
-                className="flex items-center justify-center w-full px-3 py-2 rounded-md text-sm text-neutral-400 hover:text-white transition-colors"
-              >
-                Create account
-              </Link>
-            </div>
-          )}
-        </div>
-      </aside>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="px-4 py-2 rounded-lg text-sm text-[#a0a0a0] hover:text-white transition-colors cursor-pointer"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-5 py-2 rounded-lg text-sm font-medium bg-white text-black hover:bg-[#e0e0e0] transition-colors cursor-pointer"
+                >
+                  Get Started
+                </Link>
+              </div>
+            )}
+          </div>
 
-      {/* Main content */}
-      <main className="ml-60 flex-1 min-h-screen">
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="md:hidden w-10 h-10 flex items-center justify-center text-white cursor-pointer"
+            aria-label="Menu"
+          >
+            {menuOpen ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M3 12h18M3 6h18M3 18h18" />
+              </svg>
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Menu */}
+        {menuOpen && (
+          <div className="md:hidden bg-[#0a0a0a] border-t border-[#1a1a1a] animate-slide-in-up">
+            <div className="px-6 py-4 space-y-1">
+              {[...navLinks, ...authLinks].map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end={link.to === "/"}
+                  onClick={() => setMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `block px-4 py-2.5 rounded-lg text-sm transition-colors cursor-pointer ${
+                      isActive ? "text-white bg-[#1a1a1a]" : "text-[#888] hover:text-white"
+                    }`
+                  }
+                >
+                  {link.label}
+                </NavLink>
+              ))}
+              <div className="pt-3 mt-3 border-t border-[#1a1a1a]">
+                {user ? (
+                  <button
+                    onClick={() => { handleLogout(); setMenuOpen(false); }}
+                    className="w-full text-left px-4 py-2.5 rounded-lg text-sm text-[#888] hover:text-white transition-colors cursor-pointer"
+                  >
+                    Sign out ({user.username})
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <Link
+                      to="/login"
+                      onClick={() => setMenuOpen(false)}
+                      className="block text-center px-4 py-2.5 rounded-lg text-sm text-[#a0a0a0] border border-[#333] hover:text-white transition-colors cursor-pointer"
+                    >
+                      Sign in
+                    </Link>
+                    <Link
+                      to="/register"
+                      onClick={() => setMenuOpen(false)}
+                      className="block text-center px-4 py-2.5 rounded-lg text-sm font-medium bg-white text-black hover:bg-[#e0e0e0] transition-colors cursor-pointer"
+                    >
+                      Get Started
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </nav>
+
+      {/* ── Main Content ─────────────────────────────────────────────────────── */}
+      <main>
         <Outlet />
       </main>
     </div>

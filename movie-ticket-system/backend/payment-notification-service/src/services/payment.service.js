@@ -13,7 +13,7 @@ function randomPaymentMethod() {
 }
 
 export function processPayment({ bookingId, userId, movieTitle, seatNumber }) {
-  const success = Math.random() < 0.7;
+  const success = Math.random() < 0.7; 
   const payment = {
     id: idCounter++,
     bookingId,
