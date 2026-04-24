@@ -320,6 +320,7 @@ function LatencyHistogram({ latencies }) {
 function LoadTestPanel() {
   const [testKey, setTestKey] = useState('bench:key1')
   const [count, setCount] = useState(1000)
+  const [concurrency, setConcurrency] = useState(20)
   const [autoCreate, setAutoCreate] = useState(true)
   const [flushBefore, setFlushBefore] = useState(true)
   const [running, setRunning] = useState(false)
@@ -339,26 +340,31 @@ function LoadTestPanel() {
     if (autoCreate) {
       try {
         await apiRequest('POST', '', { key: testKey, data: { benchmark: true, ts: Date.now() } })
+        // Đợi MQ consumer xử lý write xong trước khi bắt đầu đọc
+        await new Promise(r => setTimeout(r, 400))
       } catch {}
     }
 
     const latencies = []
     const sources = []
     const startAll = performance.now()
+    let completed = 0
 
-    for (let i = 0; i < count; i++) {
-      if (abortRef.current) break
-      const t0 = performance.now()
-      try {
-        const res = await apiRequest('GET', `/${encodeURIComponent(testKey)}`)
-        const ms = performance.now() - t0
-        latencies.push(ms)
-        sources.push(res.data?.source ?? 'unknown')
-      } catch {
-        latencies.push(0)
-        sources.push('error')
-      }
-      if (i % 50 === 0 || i === count - 1) setProgress(i + 1)
+    // ── Concurrent batching ──────────────────────────────────────────────────
+    // Chia thành nhiều batch, mỗi batch gửi `concurrency` request song song.
+    // Promise.all đảm bảo tất cả request trong batch chạy đồng thời.
+    for (let i = 0; i < count && !abortRef.current; i += concurrency) {
+      const batchSize = Math.min(concurrency, count - i)
+      const batch = Array.from({ length: batchSize }, () => {
+        const t0 = performance.now()
+        return apiRequest('GET', `/${encodeURIComponent(testKey)}`)
+          .then(res => ({ ms: performance.now() - t0, source: res.data?.source ?? 'unknown', ok: true }))
+          .catch(() => ({ ms: 0, source: 'error', ok: false }))
+      })
+      const batchResults = await Promise.all(batch)
+      batchResults.forEach(r => { latencies.push(r.ms); sources.push(r.source) })
+      completed += batchSize
+      setProgress(completed)
     }
 
     const totalMs = performance.now() - startAll
@@ -372,6 +378,8 @@ function LoadTestPanel() {
     setResults({
       totalMs: Math.round(totalMs),
       completed: latencies.length,
+      concurrency,
+      batches: Math.ceil(completed / concurrency),
       throughput: n ? ((n / totalMs) * 1000).toFixed(1) : 0,
       cacheHits, dbHits,
       hitRate: n ? ((cacheHits / n) * 100).toFixed(1) : 0,
@@ -390,22 +398,41 @@ function LoadTestPanel() {
 
   return (
     <div className="space-y-5">
+      {/* Giải thích cơ chế */}
+      <div className="bg-fuchsia-950/40 border border-fuchsia-500/30 rounded-xl p-3 text-xs text-fuchsia-200/80 leading-relaxed">
+        <span className="font-semibold text-fuchsia-300">⚡ Concurrent mode:</span> Mỗi batch gửi <code className="bg-white/10 px-1 rounded">{concurrency}</code> request <strong>song song</strong> (Promise.all).
+        Tổng <code className="bg-white/10 px-1 rounded">{count.toLocaleString()}</code> req → <code className="bg-white/10 px-1 rounded">{Math.ceil(count / concurrency)}</code> batches — nhanh hơn sequential ~{concurrency}×.
+      </div>
+
       {/* Config */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5">Key để benchmark</label>
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5">Key benchmark</label>
           <input
             type="text" value={testKey} onChange={e => setTestKey(e.target.value)} disabled={running}
             className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 font-mono"
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5">Số requests (tối đa 5000)</label>
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5">Số requests (max 5000)</label>
           <input
             type="number" value={count} min={1} max={5000} disabled={running}
             onChange={e => setCount(Math.max(1, Math.min(5000, parseInt(e.target.value) || 100)))}
             className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500 font-mono"
           />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5">
+            Concurrency <span className="text-fuchsia-400 font-bold">{concurrency}</span>
+          </label>
+          <input
+            type="range" value={concurrency} min={1} max={50} step={1} disabled={running}
+            onChange={e => setConcurrency(Number(e.target.value))}
+            className="w-full accent-fuchsia-500 mt-2"
+          />
+          <div className="flex justify-between text-[10px] text-gray-500 mt-0.5">
+            <span>1 (sequential)</span><span>50 (max)</span>
+          </div>
         </div>
       </div>
 
@@ -420,7 +447,7 @@ function LoadTestPanel() {
           <input type="checkbox" checked={flushBefore} disabled={running}
             onChange={e => setFlushBefore(e.target.checked)}
             className="accent-fuchsia-500 w-3.5 h-3.5" />
-          Flush cache trước khi test (để thấy rõ DB→Cache transition)
+          Flush cache trước (thấy rõ DB→Cache transition)
         </label>
       </div>
 
@@ -428,8 +455,8 @@ function LoadTestPanel() {
       {(running || (results && results.completed > 0)) && (
         <div>
           <div className="flex justify-between text-xs text-gray-400 mb-1.5">
-            <span>{running ? '⏳ Đang chạy...' : '✅ Hoàn tất'}</span>
-            <span className="font-mono">{progress.toLocaleString()} / {count.toLocaleString()}</span>
+            <span>{running ? `⏳ Batch ${Math.ceil(progress / concurrency)} / ${Math.ceil(count / concurrency)}` : '✅ Hoàn tất'}</span>
+            <span className="font-mono">{progress.toLocaleString()} / {count.toLocaleString()} req</span>
           </div>
           <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
             <div
@@ -450,8 +477,8 @@ function LoadTestPanel() {
           className="flex-1 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:from-fuchsia-400 hover:to-violet-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-fuchsia-900/40"
         >
           {running
-            ? <><span className="animate-spin">⏳</span> Đang benchmark...</>
-            : <><span>🚀</span> Chạy {count.toLocaleString()} Requests</>}
+            ? <><span className="animate-spin">⏳</span> Đang chạy... (concurrency={concurrency})</>
+            : <><span>🚀</span> {count.toLocaleString()} req × concurrency {concurrency} = {Math.ceil(count/concurrency)} batches</>}
         </button>
         {running && (
           <button
@@ -466,12 +493,13 @@ function LoadTestPanel() {
       {/* Results */}
       {results && !running && (
         <div className="space-y-4">
-          {/* Top 3 KPIs */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Top KPIs */}
+          <div className="grid grid-cols-4 gap-3">
             {[
               { label: 'Tổng thời gian', value: `${(results.totalMs / 1000).toFixed(2)}s`, icon: '⏱️', color: 'text-sky-400' },
               { label: 'Throughput', value: `${results.throughput} req/s`, icon: '⚡', color: 'text-amber-400' },
               { label: 'Cache Hit Rate', value: `${results.hitRate}%`, icon: '🎯', color: hitRateNum > 90 ? 'text-emerald-400' : hitRateNum > 50 ? 'text-amber-400' : 'text-rose-400' },
+              { label: `Concurrency ×${results.concurrency}`, value: `${results.batches} batches`, icon: '🔀', color: 'text-fuchsia-400' },
             ].map(s => (
               <div key={s.label} className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
                 <div className="text-xl mb-1">{s.icon}</div>
