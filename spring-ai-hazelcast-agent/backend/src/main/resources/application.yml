@@ -1,0 +1,40 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: cache-agent
+
+# Hazelcast Cloud Configuration
+hazelcast:
+  cloud:
+    cluster-name: ${HAZELCAST_CLUSTER_NAME:your-cluster-name}
+    discovery-token: ${HAZELCAST_DISCOVERY_TOKEN:your-discovery-token}
+  cache:
+    map-name: app-cache
+    # TTL mặc định cho mỗi entry (giây), 0 = không hết hạn
+    ttl-seconds: 300
+    # Số bản ghi tối đa trong cache
+    max-size: 10000
+
+# Read Service
+read-service:
+  base-url: ${READ_SERVICE_URL:http://localhost:8081}
+  timeout-ms: 3000
+
+# Write Service
+write-service:
+  base-url: ${WRITE_SERVICE_URL:http://localhost:8082}
+  timeout-ms: 5000
+
+# Logging
+logging:
+  level:
+    com.example.cacheagent: DEBUG
+    com.hazelcast: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
