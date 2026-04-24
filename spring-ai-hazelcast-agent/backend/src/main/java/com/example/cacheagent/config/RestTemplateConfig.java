@@ -1,12 +1,10 @@
 package com.example.cacheagent.config;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
-
-import java.time.Duration;
 
 @Configuration
 public class RestTemplateConfig {
@@ -18,18 +16,18 @@ public class RestTemplateConfig {
     private int writeTimeoutMs;
 
     @Bean("readRestTemplate")
-    public RestTemplate readRestTemplate(RestTemplateBuilder builder) {
-        return builder
-                .connectTimeout(Duration.ofMillis(readTimeoutMs))
-                .readTimeout(Duration.ofMillis(readTimeoutMs))
-                .build();
+    public RestTemplate readRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(readTimeoutMs);
+        factory.setReadTimeout(readTimeoutMs);
+        return new RestTemplate(factory);
     }
 
     @Bean("writeRestTemplate")
-    public RestTemplate writeRestTemplate(RestTemplateBuilder builder) {
-        return builder
-                .connectTimeout(Duration.ofMillis(writeTimeoutMs))
-                .readTimeout(Duration.ofMillis(writeTimeoutMs))
-                .build();
+    public RestTemplate writeRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(writeTimeoutMs);
+        factory.setReadTimeout(writeTimeoutMs);
+        return new RestTemplate(factory);
     }
 }

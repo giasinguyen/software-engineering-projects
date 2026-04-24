@@ -123,9 +123,11 @@ public class CacheService {
      */
     public Map<String, Long> getStats() {
         var stats = getMap().getLocalMapStats();
+        long hits   = stats.getHits();
+        long misses = Math.max(0, stats.getGetOperationCount() - hits);
         return Map.of(
-            "hits",       stats.getHits(),
-            "misses",     stats.getMissCount(),
+            "hits",       hits,
+            "misses",     misses,
             "puts",       stats.getPutOperationCount(),
             "removes",    stats.getRemoveOperationCount(),
             "heapCost",   stats.getHeapCost(),
