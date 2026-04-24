@@ -5,6 +5,21 @@ spring:
   application:
     name: cache-agent
 
+  # ─── RabbitMQ (CloudAMQP) ────────────────────────────────────────────────
+  rabbitmq:
+    host: armadillo.rmq.cloudamqp.com
+    port: 5671
+    username: upqwqnta
+    password: aiy_vtFT91-PI_W5A-Oxono5ar9K7Wc_
+    virtual-host: upqwqnta
+    ssl:
+      enabled: true
+    listener:
+      simple:
+        acknowledge-mode: auto
+        concurrency: 2
+        max-concurrency: 5
+
 # Hazelcast Embedded (local) Configuration
 hazelcast:
   cache:
