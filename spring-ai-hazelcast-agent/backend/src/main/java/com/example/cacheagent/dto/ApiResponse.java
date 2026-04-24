@@ -86,4 +86,18 @@ public class ApiResponse<T> {
                 .operation("READ")
                 .build();
     }
+
+    /**
+     * Response trả về khi write request được đưa vào MQ (Async Write-Through).
+     * HTTP 202 Accepted – dữ liệu sẽ được ghi bởi consumer bất đồng bộ.
+     */
+    public static <T> ApiResponse<T> queued(String key, String operation, long latencyMs) {
+        return ApiResponse.<T>builder()
+                .source("mq")
+                .status(202)
+                .message("Đã gửi vào RabbitMQ. Consumer đang xử lý bất đồng bộ...")
+                .latencyMs(latencyMs)
+                .operation(operation)
+                .build();
+    }
 }

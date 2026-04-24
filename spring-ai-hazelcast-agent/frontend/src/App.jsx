@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import './App.css'
 
 const BASE_URL = '/api/agent'
@@ -50,13 +50,19 @@ function ArchFlow() {
 // ─── SourceBadge ─────────────────────────────────────────────────────────────
 function SourceBadge({ source }) {
   if (!source) return null
-  const isCache = source === 'cache'
+  if (source === 'cache') return (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-violet-100 text-violet-700 border border-violet-300">
+      ⚡ CACHE HIT
+    </span>
+  )
+  if (source === 'mq') return (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-orange-100 text-orange-700 border border-orange-300">
+      🐇 QUEUED – MQ
+    </span>
+  )
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide
-      ${isCache
-        ? 'bg-violet-100 text-violet-700 border border-violet-300'
-        : 'bg-blue-100 text-blue-700 border border-blue-300'}`}>
-      {isCache ? '⚡ CACHE HIT' : '🗄️ DATABASE'}
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-blue-100 text-blue-700 border border-blue-300">
+      🗄️ DATABASE
     </span>
   )
 }
@@ -98,6 +104,36 @@ function ResponsePanel({ result, error, loading }) {
   )
 
   const r = result.data
+  const isQueued = result.status === 202
+
+  // Special render for 202 Queued (MQ async write)
+  if (isQueued) return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <SourceBadge source="mq" />
+        <span className="text-xs font-mono px-2 py-1 rounded-full font-bold bg-orange-100 text-orange-700">
+          HTTP 202
+        </span>
+        {r?.operation && (
+          <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-mono font-semibold">
+            {r.operation}
+          </span>
+        )}
+      </div>
+      {r?.latencyMs != null && <LatencyBar ms={r.latencyMs} />}
+      <div className="bg-orange-950/40 border border-orange-500/30 rounded-xl p-4">
+        <div className="flex items-center gap-2 text-orange-300 text-sm font-semibold mb-1">
+          <span>🐇</span> Đã gửi vào RabbitMQ (CloudAMQP)
+        </div>
+        <p className="text-xs text-orange-200/70">
+          Write request được xử lý bất đồng bộ. Consumer đang ghi DB + đồng bộ Hazelcast cache
+          trong nền. HTTP thread trả về ngay — không chờ.
+        </p>
+      </div>
+      {r?.message && <p className="text-sm text-gray-400 italic">{r.message}</p>}
+    </div>
+  )
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
@@ -519,10 +555,24 @@ export default function App() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [activityLog, setActivityLog] = useState([])
+  const [mqStatus, setMqStatus] = useState(null)
 
   const addLog = useCallback((method, path, status, ok, source) => {
     const time = new Date().toLocaleTimeString('vi-VN', { hour12: false })
     setActivityLog(prev => [...prev.slice(-49), { time, method, path, status, ok, source }])
+  }, [])
+
+  // Poll MQ status every 15s
+  useEffect(() => {
+    async function fetchMqStatus() {
+      try {
+        const res = await apiRequest('GET', '/mq/status')
+        if (res.ok) setMqStatus(res.data)
+      } catch { /* silent */ }
+    }
+    fetchMqStatus()
+    const id = setInterval(fetchMqStatus, 15000)
+    return () => clearInterval(id)
   }, [])
 
   async function run() {
@@ -586,11 +636,20 @@ export default function App() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {['Spring Boot', 'Hazelcast', 'React', 'Tailwind'].map(t => (
+            {['Spring Boot', 'Hazelcast', 'RabbitMQ', 'React', 'Tailwind'].map(t => (
               <span key={t} className="text-[11px] px-2.5 py-1 rounded-full bg-white/10 text-gray-300 font-medium border border-white/10">
                 {t}
               </span>
             ))}
+            {mqStatus != null && (
+              <span className={`text-[11px] px-2.5 py-1 rounded-full font-medium border ${
+                mqStatus.connected
+                  ? 'bg-emerald-900/50 text-emerald-300 border-emerald-600/50'
+                  : 'bg-rose-900/50 text-rose-300 border-rose-600/50'
+              }`}>
+                🐇 MQ {mqStatus.connected ? 'Online' : 'Offline'}
+              </span>
+            )}
           </div>
         </div>
       </header>
@@ -608,9 +667,34 @@ export default function App() {
             <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Cache Strategy</h2>
             <ul className="space-y-2 text-xs text-gray-300">
               <li className="flex items-start gap-2"><span className="text-sky-400 shrink-0">🔍 READ</span><span>Cache-Aside (lazy loading)</span></li>
-              <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0">✏️ WRITE</span><span>Write-Through (sync DB + cache)</span></li>
-              <li className="flex items-start gap-2"><span className="text-rose-400 shrink-0">🗑️ DELETE</span><span>Invalidation (evict from cache)</span></li>
+              <li className="flex items-start gap-2"><span className="text-orange-400 shrink-0">✏️ WRITE</span><span>Async via RabbitMQ → Write-Through</span></li>
+              <li className="flex items-start gap-2"><span className="text-rose-400 shrink-0">🗑️ DELETE</span><span>Async via RabbitMQ → Invalidation</span></li>
             </ul>
+          </div>
+
+          {/* MQ status card */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur text-sm">
+            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">RabbitMQ Status</h2>
+            {mqStatus == null ? (
+              <div className="text-xs text-gray-500 animate-pulse">Đang kiểm tra kết nối...</div>
+            ) : (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${
+                    mqStatus.connected ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-rose-400'
+                  }`} />
+                  <span className={`text-xs font-bold ${
+                    mqStatus.connected ? 'text-emerald-400' : 'text-rose-400'
+                  }`}>{mqStatus.connected ? 'Connected' : 'Disconnected'}</span>
+                </div>
+                {[['Host',  mqStatus.host], ['Queue', mqStatus.queue], ['Pattern', mqStatus.pattern]].map(([k, v]) => (
+                  <div key={k} className="flex justify-between text-[11px]">
+                    <span className="text-gray-500">{k}</span>
+                    <span className="text-gray-300 font-mono text-right truncate max-w-[140px]" title={v}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </aside>
 

@@ -1,7 +1,10 @@
 package com.example.cacheagent.controller;
 
+import com.example.cacheagent.config.RabbitMQConfig;
 import com.example.cacheagent.dto.ApiResponse;
 import com.example.cacheagent.dto.WriteRequest;
+import com.example.cacheagent.mq.WriteEvent;
+import com.example.cacheagent.mq.WriteEventPublisher;
 import com.example.cacheagent.service.AgentService;
 import com.example.cacheagent.service.InMemoryDatabase;
 import jakarta.validation.Valid;
@@ -31,8 +34,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AgentController {
 
-    private final AgentService agentService;
-    private final InMemoryDatabase db;
+    private final AgentService        agentService;
+    private final InMemoryDatabase    db;
+    private final WriteEventPublisher publisher;
 
     // ─── READ ─────────────────────────────────────────────────────────────────
 
@@ -73,14 +77,22 @@ public class AgentController {
      * Body: { "key": "user:1001", "data": { "name": "Minh" } }
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<Map<String, Object>>> create(
+    public ResponseEntity<ApiResponse<?>> create(
             @Valid @RequestBody WriteRequest request) {
 
-        log.info("[CONTROLLER] POST /api/agent key={}", request.getKey());
-        ApiResponse<Map<String, Object>> response =
-                agentService.create(request.getKey(), request.getData());
+        long start = System.currentTimeMillis();
+        log.info("[CONTROLLER] POST /api/agent key={} → MQ", request.getKey());
 
-        return ResponseEntity.ok(response);
+        publisher.publish(WriteEvent.builder()
+                .type("CREATE")
+                .key(request.getKey())
+                .data(request.getData())
+                .timestamp(System.currentTimeMillis())
+                .build());
+
+        long latency = System.currentTimeMillis() - start;
+        return ResponseEntity.accepted()
+                .body(ApiResponse.queued(request.getKey(), "CREATE", latency));
     }
 
     // ─── UPDATE ───────────────────────────────────────────────────────────────
@@ -92,14 +104,23 @@ public class AgentController {
      * Body: { "name": "Minh Updated", "age": 29 }
      */
     @PutMapping("/{key}")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> update(
+    public ResponseEntity<ApiResponse<?>> update(
             @PathVariable String key,
             @RequestBody Map<String, Object> data) {
 
-        log.info("[CONTROLLER] PUT /api/agent/{}", key);
-        ApiResponse<Map<String, Object>> response = agentService.update(key, data);
+        long start = System.currentTimeMillis();
+        log.info("[CONTROLLER] PUT /api/agent/{} → MQ", key);
 
-        return ResponseEntity.ok(response);
+        publisher.publish(WriteEvent.builder()
+                .type("UPDATE")
+                .key(key)
+                .data(data)
+                .timestamp(System.currentTimeMillis())
+                .build());
+
+        long latency = System.currentTimeMillis() - start;
+        return ResponseEntity.accepted()
+                .body(ApiResponse.queued(key, "UPDATE", latency));
     }
 
     // ─── DELETE ───────────────────────────────────────────────────────────────
@@ -110,10 +131,19 @@ public class AgentController {
      * DELETE /api/agent/{key}
      */
     @DeleteMapping("/{key}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String key) {
-        log.info("[CONTROLLER] DELETE /api/agent/{}", key);
-        ApiResponse<Void> response = agentService.delete(key);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<?>> delete(@PathVariable String key) {
+        long start = System.currentTimeMillis();
+        log.info("[CONTROLLER] DELETE /api/agent/{} → MQ", key);
+
+        publisher.publish(WriteEvent.builder()
+                .type("DELETE")
+                .key(key)
+                .timestamp(System.currentTimeMillis())
+                .build());
+
+        long latency = System.currentTimeMillis() - start;
+        return ResponseEntity.accepted()
+                .body(ApiResponse.queued(key, "DELETE", latency));
     }
 
     // ─── ADMIN: Cache Management ──────────────────────────────────────────────
@@ -145,6 +175,26 @@ public class AgentController {
             "source", "hazelcast-embedded",
             "dbSize", db.size(),
             "stats",  stats
+        ));
+    }
+
+    // ─── MQ Status ────────────────────────────────────────────────────────────
+
+    /**
+     * Kiểm tra trạng thái kết nối RabbitMQ.
+     *
+     * GET /api/agent/mq/status
+     */
+    @GetMapping("/mq/status")
+    public ResponseEntity<Map<String, Object>> mqStatus() {
+        boolean connected = publisher.isConnected();
+        return ResponseEntity.ok(Map.of(
+            "connected",  connected,
+            "host",       "armadillo.rmq.cloudamqp.com:5671",
+            "queue",      RabbitMQConfig.QUEUE,
+            "exchange",   RabbitMQConfig.EXCHANGE,
+            "routingKey", RabbitMQConfig.ROUTING_KEY,
+            "pattern",    "Async Write-Through"
         ));
     }
 }
