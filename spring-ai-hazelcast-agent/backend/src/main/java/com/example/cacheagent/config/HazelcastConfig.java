@@ -1,8 +1,8 @@
 package com.example.cacheagent.config;
 
-import com.hazelcast.client.HazelcastClient;
-import com.hazelcast.client.config.ClientConfig;
-import com.hazelcast.client.config.ClientConnectionStrategyConfig;
+import com.hazelcast.config.Config;
+import com.hazelcast.config.MapConfig;
+import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,40 +13,41 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class HazelcastConfig {
 
-    @Value("${hazelcast.cloud.cluster-name}")
-    private String clusterName;
+    @Value("${hazelcast.cache.map-name:app-cache}")
+    private String mapName;
 
-    @Value("${hazelcast.cloud.discovery-token}")
-    private String discoveryToken;
+    @Value("${hazelcast.cache.ttl-seconds:300}")
+    private int ttlSeconds;
+
+    @Value("${hazelcast.cache.max-size:10000}")
+    private int maxSize;
 
     /**
-     * Tạo Hazelcast client kết nối đến Hazelcast Cloud.
-     * Dùng smart routing để tự động kết nối đến member tối ưu nhất.
+     * Embedded local Hazelcast instance — dùng cho demo/local dev.
+     * IMap API hoàn toàn tương thích với Hazelcast Cloud client.
      */
     @Bean
     public HazelcastInstance hazelcastInstance() {
-        ClientConfig config = new ClientConfig();
+        Config config = new Config();
+        config.setInstanceName("cache-agent-local");
 
-        // Kết nối Hazelcast Cloud
+        // Tắt multicast discovery để tránh noise trong log
         config.getNetworkConfig()
-              .getCloudConfig()
-              .setEnabled(true)
-              .setDiscoveryToken(discoveryToken);
+              .getJoin()
+              .getMulticastConfig()
+              .setEnabled(false);
 
-        config.setClusterName(clusterName);
+        // Cấu hình IMap với TTL và max-size
+        MapConfig mapConfig = new MapConfig(mapName);
+        mapConfig.setTimeToLiveSeconds(ttlSeconds);
+        mapConfig.getEvictionConfig()
+                 .setSize(maxSize);
 
-        // Cấu hình retry khi mất kết nối
-        config.getConnectionStrategyConfig()
-              .setReconnectMode(ClientConnectionStrategyConfig.ReconnectMode.ASYNC)
-              .getConnectionRetryConfig()
-              .setClusterConnectTimeoutMillis(10_000)
-              .setInitialBackoffMillis(1000)
-              .setMaxBackoffMillis(30_000)
-              .setMultiplier(2.0);
+        config.addMapConfig(mapConfig);
 
-        log.info("Đang kết nối Hazelcast Cloud - cluster: {}", clusterName);
-        HazelcastInstance instance = HazelcastClient.newHazelcastClient(config);
-        log.info("Kết nối Hazelcast Cloud thành công!");
+        log.info("Khởi động Hazelcast embedded (local) - map: {}, ttl: {}s", mapName, ttlSeconds);
+        HazelcastInstance instance = Hazelcast.newHazelcastInstance(config);
+        log.info("Hazelcast embedded khởi động thành công!");
 
         return instance;
     }

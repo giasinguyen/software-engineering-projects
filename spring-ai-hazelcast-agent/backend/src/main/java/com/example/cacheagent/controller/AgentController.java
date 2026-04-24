@@ -3,6 +3,7 @@ package com.example.cacheagent.controller;
 import com.example.cacheagent.dto.ApiResponse;
 import com.example.cacheagent.dto.WriteRequest;
 import com.example.cacheagent.service.AgentService;
+import com.example.cacheagent.service.InMemoryDatabase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ import java.util.Map;
 public class AgentController {
 
     private final AgentService agentService;
+    private final InMemoryDatabase db;
 
     // ─── READ ─────────────────────────────────────────────────────────────────
 
@@ -140,7 +142,8 @@ public class AgentController {
     public ResponseEntity<Map<String, Object>> cacheStats() {
         Map<String, Long> stats = agentService.getCacheStats();
         return ResponseEntity.ok(Map.of(
-            "source", "hazelcast-cloud",
+            "source", "hazelcast-embedded",
+            "dbSize", db.size(),
             "stats",  stats
         ));
     }

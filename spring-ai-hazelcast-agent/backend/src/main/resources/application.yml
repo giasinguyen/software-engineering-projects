@@ -5,11 +5,8 @@ spring:
   application:
     name: cache-agent
 
-# Hazelcast Cloud Configuration
+# Hazelcast Embedded (local) Configuration
 hazelcast:
-  cloud:
-    cluster-name: demo-architecture
-    discovery-token: Df4b2ytm17EknK1Du8Q0YhjRJgtBAI99PriG0pIoOhrJXhq2P5l099a6qKHuTq6l
   cache:
     map-name: app-cache
     ttl-seconds: 300
